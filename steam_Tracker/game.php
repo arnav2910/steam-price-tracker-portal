@@ -173,11 +173,11 @@ new Chart(document.getElementById('priceChart'), {
 new Chart(document.getElementById('reviewChart'), {
     type: 'bar', // Changed from 'line' to 'bar'
     data: {
-        labels: <?php echo json_encode($r_dates); ?>,
+        labels: <?php echo json_encode($rh_dates); ?>,
         datasets: [
             {
                 label: 'Positive Reviews',
-                data: <?php echo json_encode($r_pos); ?>,
+                data: <?php echo json_encode($rh_pos); ?>,
                 backgroundColor: '#2ecc71',
                 borderColor: '#27ae60',
                 borderWidth: 1
@@ -185,7 +185,7 @@ new Chart(document.getElementById('reviewChart'), {
             {
                 label: 'Negative Reviews',
                 // Map the data to negative values so they grow downwards
-                data: <?php echo json_encode(array_map(function($v) { return -$v; }, $r_neg)); ?>,
+                data: <?php echo json_encode(array_map(function($v) { return -$v; }, $rh_neg)); ?>,
                 backgroundColor: '#e74c3c',
                 borderColor: '#c0392b',
                 borderWidth: 1
@@ -193,14 +193,13 @@ new Chart(document.getElementById('reviewChart'), {
         ]
     },
     options: {
-        ...commonOptions,
+        responsive: true,
         scales: {
             x: {
-                ...commonOptions.scales.x,
+                ticks: { maxTicksLimit: 10, color: '#889297' },
                 stacked: true // Stack bars on the same x-axis point
             },
             y: {
-                ...commonOptions.scales.y,
                 stacked: true,
                 ticks: {
                     color: '#889297',
@@ -212,7 +211,6 @@ new Chart(document.getElementById('reviewChart'), {
             }
         },
         plugins: {
-            ...commonOptions.plugins,
             tooltip: {
                 callbacks: {
                     // Correct the tooltip so it doesn't show a negative sign for bad reviews
