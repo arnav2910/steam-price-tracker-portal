@@ -1,5 +1,5 @@
 <?php include 'includes/db.php'; ?>
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
     <title>Steam Tracker</title>
