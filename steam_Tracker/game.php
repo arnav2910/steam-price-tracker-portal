@@ -1,229 +1,228 @@
-<?php 
-include 'includes/db.php'; 
-include 'includes/logic.php'; 
+<?php
+include 'includes/db.php';
+include 'includes/logic.php';
 
-$id = (int)$_GET['id'];
-$game_res = mysqli_query($conn, "SELECT * FROM games WHERE id = $id");
-$game = mysqli_fetch_assoc($game_res);
-if (!$game) die("Game Not Found");
+$id       = (int)$_GET['id'];
+$game_res = mysqli_query($conn,"SELECT * FROM games WHERE id=$id");
+$game     = mysqli_fetch_assoc($game_res);
+if(!$game) die("Game not found.");
 
-// Buy Score
-$buy_score = getBuyScore($conn, $id);
+// Buy Score (original logic)
+$buy_score = getBuyScore($conn,$id);
+function buyLabel($s){
+    if($s>=85) return ['label'=>'Excellent Buy','color'=>'#2ecc71'];
+    if($s>=70) return ['label'=>'Good Value',   'color'=>'#27ae60'];
+    if($s>=55) return ['label'=>'Fair Deal',     'color'=>'#f39c12'];
+    if($s>=35) return ['label'=>'Wait a Bit',    'color'=>'#e67e22'];
+    return             ['label'=>'Avoid',         'color'=>'#e74c3c'];
+}
+$bl = buyLabel($buy_score);
 
-// 1. Data Fetching for Charts
-$p_res = mysqli_query($conn, "SELECT price_date, price FROM price_history WHERE game_id = $id ORDER BY price_date ASC");
-$p_dates = []; $p_vals = [];
-while($r = mysqli_fetch_assoc($p_res)) { $p_dates[] = $r['price_date']; $p_vals[] = $r['price']; }
+// Price data
+$p_res = mysqli_query($conn,"SELECT price_date,price FROM price_history WHERE game_id=$id ORDER BY price_date ASC");
+$p_dates=[]; $p_vals=[];
+while($r=mysqli_fetch_assoc($p_res)){ $p_dates[]=$r['price_date']; $p_vals[]=$r['price']; }
+$cur_price = end($p_vals) ?: 0;
+$max_price = $p_vals ? max($p_vals) : 0;
+$min_price = $p_vals ? min($p_vals) : 0;
+$disc = ($max_price>0 && $cur_price<$max_price) ? round(($max_price-$cur_price)/$max_price*100) : 0;
 
-$rev_res = mysqli_query($conn, "SELECT pos_reviews, neg_reviews FROM review_history WHERE game_id = $id ORDER BY review_date DESC LIMIT 1");
-$latest = mysqli_fetch_assoc($rev_res);
-$pos = $latest['pos_reviews'] ?? 0;
-$neg = $latest['neg_reviews'] ?? 0;
-$total = $pos + $neg;
-$percent = ($total > 0) ? round(($pos / $total) * 100) : 0;
+// Review data
+$rev_res = mysqli_query($conn,"SELECT pos_reviews,neg_reviews FROM review_history WHERE game_id=$id ORDER BY review_date DESC LIMIT 1");
+$latest  = mysqli_fetch_assoc($rev_res);
+$pos     = $latest['pos_reviews'] ?? 0;
+$neg     = $latest['neg_reviews'] ?? 0;
+$total   = $pos+$neg;
+$pct     = $total>0 ? round($pos/$total*100) : 0;
+$rev_label='Mixed'; $rev_color='var(--yellow)';
+if($pct>=95){ $rev_label='Overwhelmingly Positive'; $rev_color='var(--steam-blue)'; }
+elseif($pct>=80){ $rev_label='Very Positive'; $rev_color='var(--steam-blue)'; }
+elseif($pct>=70){ $rev_label='Positive'; $rev_color='var(--steam-blue)'; }
+elseif($pct<40) { $rev_label='Negative'; $rev_color='var(--red)'; }
 
-// Sentiment Label Mapping
-$label = "Mixed"; $color = "#b9a074";
-if ($percent >= 95) { $label = "Overwhelmingly Positive"; $color = "#66c0f4"; }
-elseif ($percent >= 80) { $label = "Very Positive"; $color = "#66c0f4"; }
-elseif ($percent >= 70) { $label = "Positive"; $color = "#66c0f4"; }
-elseif ($percent < 40) { $label = "Negative"; $color = "#a34c32"; }
+// Review history chart
+$rh_res = mysqli_query($conn,"SELECT review_date,pos_reviews,neg_reviews FROM review_history WHERE game_id=$id ORDER BY review_date ASC");
+$rh_dates=[]; $rh_pos=[]; $rh_neg=[];
+while($r=mysqli_fetch_assoc($rh_res)){ $rh_dates[]=$r['review_date']; $rh_pos[]=$r['pos_reviews']; $rh_neg[]=$r['neg_reviews']; }
 
-$rh_res = mysqli_query($conn, "SELECT review_date, pos_reviews, neg_reviews FROM review_history WHERE game_id = $id ORDER BY review_date ASC");
-$rh_dates = []; $rh_pos = []; $rh_neg = [];
-while($r = mysqli_fetch_assoc($rh_res)) { $rh_dates[] = $r['review_date']; $rh_pos[] = $r['pos_reviews']; $rh_neg[] = $r['neg_reviews']; }
+// Waterfall Recommendations (original logic preserved)
+$tags_array    = explode('|',$game['category']);
+$primary_tag   = mysqli_real_escape_string($conn,trim($tags_array[0]));
+$cur_cluster   = mysqli_real_escape_string($conn,$game['cluster_label']?:'Uncategorized');
+$cur_id        = $game['id'];
+
+$rec_sql = "SELECT g.id,g.name,(SELECT price FROM price_history WHERE game_id=g.id ORDER BY price_date DESC LIMIT 1) as price
+            FROM games g WHERE cluster_label='$cur_cluster' AND category LIKE '%$primary_tag%' AND id!=$cur_id LIMIT 4";
+$rec_res = mysqli_query($conn,$rec_sql);
+$match_type = "pricing behavior and genre";
+
+if(mysqli_num_rows($rec_res)==0){
+    $rec_sql = "SELECT g.id,g.name,(SELECT price FROM price_history WHERE game_id=g.id ORDER BY price_date DESC LIMIT 1) as price
+                FROM games g WHERE category LIKE '%$primary_tag%' AND id!=$cur_id LIMIT 4";
+    $rec_res = mysqli_query($conn,$rec_sql);
+    $match_type = "similar genres ($primary_tag)";
+}
+if(mysqli_num_rows($rec_res)==0){
+    $rec_sql = "SELECT g.id,g.name,(SELECT price FROM price_history WHERE game_id=g.id ORDER BY price_date DESC LIMIT 1) as price
+                FROM games g WHERE cluster_label='$cur_cluster' AND id!=$cur_id LIMIT 4";
+    $rec_res = mysqli_query($conn,$rec_sql);
+    $match_type = "similar market pricing ($cur_cluster)";
+}
+
+$active_nav = 'home';
+$page_title = $game['name'];
+$extra_head = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>';
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title><?php echo htmlspecialchars($game['name']); ?></title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-<div class="container">
-    <a href="index.php" class="btn-reset">← Back</a>
-    
-    <h1 style="font-size: 48px; margin: 20px 0 5px 0; color: #fff;">
-        <?php echo strtoupper(htmlspecialchars($game['name'])); ?>
-    </h1>
 
-    <div style="margin-bottom: 25px;">
-        <?php 
-        $tags = explode('|', $game['category']);
-        foreach($tags as $tag) {
-            $clean_tag = trim($tag);
-            if(!empty($clean_tag)) {
-                echo '<span style="display:inline-block; background:#2a475e; color:#66c0f4; padding:5px 12px; border-radius:15px; margin-right:8px; font-size:14px; font-weight:bold;">' . htmlspecialchars($clean_tag) . '</span>';
-            }
-        }
-        ?>
-    </div>
+<div class="page-container">
 
-    <div class="table-card" style="margin-bottom: 20px; padding: 25px;">
-        <h3 style="margin-top:0;">Buy Recommendation Score</h3>
-        <div class="score-container">
-            <div class="pointer" style="left: <?php echo $buy_score; ?>%;">▼<br><strong><?php echo $buy_score; ?></strong></div>
-            <div class="number-line"></div>
+  <a href="javascript:history.back()" class="btn-reset">← Back</a>
+
+  <!-- DETAIL HEADER -->
+  <div class="detail-header">
+    <div class="detail-hero-placeholder"><?php echo htmlspecialchars($game['name']); ?></div>
+
+    <div class="detail-info">
+      <h1 class="detail-title"><?php echo strtoupper(htmlspecialchars($game['name'])); ?></h1>
+
+      <!-- Tags + Cluster -->
+      <div class="detail-meta-row">
+        <?php foreach(explode('|',$game['category']) as $t):
+              $t=trim($t); if(!$t) continue; ?>
+        <span class="detail-tag"><?php echo htmlspecialchars($t); ?></span>
+        <?php endforeach; ?>
+        <?php if($game['cluster_label']): ?>
+        <span class="detail-tag cluster"><?php echo htmlspecialchars($game['cluster_label']); ?></span>
+        <?php endif; ?>
+        <?php if($game['is_anomaly']): ?>
+        <span class="anomaly-badge">⭐ Hidden Gem</span>
+        <?php endif; ?>
+      </div>
+
+      <!-- Price block -->
+      <div class="detail-price-block">
+        <div>
+          <div class="detail-current-price" style="<?php if($cur_price==0) echo 'color:var(--green)'; ?>">
+            <?php echo $cur_price==0 ? 'Free to Play' : '₹'.number_format($cur_price,2); ?>
+          </div>
+          <?php if($disc>0): ?>
+          <div class="detail-base-price">₹<?php echo number_format($max_price,2); ?> original</div>
+          <?php endif; ?>
         </div>
-    </div>
+        <?php if($disc>0): ?>
+        <div class="detail-discount-badge">-<?php echo $disc; ?>%</div>
+        <?php endif; ?>
+      </div>
 
-    <div class="table-card" style="margin-bottom: 20px; padding: 20px;">
-        <h3>Price History (INR)</h3>
-        <canvas id="priceChart"></canvas>
-    </div>
-
-    <div class="table-card" style="padding: 25px; margin-bottom: 20px;">
-        <h3 style="margin-top:0;">Overall Reviews: <span style="color:<?php echo $color; ?>"><?php echo $label; ?></span></h3>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #66c0f4; font-weight: bold;"><?php echo $percent; ?>% Positive</span>
-            <span style="color: #889297;"><?php echo number_format($total); ?> reviews</span>
+      <!-- Buy Score -->
+      <div class="buy-rec-card">
+        <div class="buy-rec-title">🤖 Buy Recommendation</div>
+        <div class="buy-meter">
+          <div class="buy-meter-indicator" style="left:<?php echo $buy_score; ?>%"></div>
         </div>
-        <div style="width: 100%; height: 12px; background: #a34c32; border-radius: 6px; overflow: hidden; display: flex;">
-            <div style="width: <?php echo $percent; ?>%; height: 100%; background: #66c0f4;"></div>
+        <div class="buy-meter-labels">
+          <span>Avoid</span><span>Wait</span><span>Fair</span><span>Good</span><span>Excellent</span>
         </div>
-    </div>
+        <div class="buy-rec-label" style="color:<?php echo $bl['color']; ?>"><?php echo $bl['label']; ?></div>
+        <div class="buy-meta">All-time low: ₹<?php echo number_format($min_price,2); ?> &nbsp;·&nbsp; Score: <?php echo $buy_score; ?>/100</div>
+      </div>
 
-    <div class="table-card" style="padding: 20px; margin-bottom: 20px;">
-        <h3>Review Growth History</h3>
-        <canvas id="reviewChart"></canvas>
-    </div>
-
-    <div class="table-card" style="padding: 25px; margin-bottom: 20px;">
-        <h3>Because you viewed <?php echo htmlspecialchars($game['name']); ?></h3>
-        
-        <?php
-        $tags_array = explode('|', $game['category']);
-        $primary_tag = mysqli_real_escape_string($conn, trim($tags_array[0]));
-        $current_cluster = mysqli_real_escape_string($conn, $game['cluster_label'] ?: 'Uncategorized');
-        $current_id = $game['id'];
-        
-        // --- THE WATERFALL LOGIC ---
-        
-        // Attempt 1: Perfect Match (Same Cluster AND Same Tag)
-        $rec_sql = "SELECT g.id, g.name, (SELECT price FROM price_history WHERE game_id = g.id ORDER BY price_date DESC LIMIT 1) as price 
-                    FROM games g WHERE cluster_label = '$current_cluster' AND category LIKE '%$primary_tag%' AND id != $current_id LIMIT 4";
-        $rec_res = mysqli_query($conn, $rec_sql);
-        $match_type = "pricing behavior and genre";
-
-        // Fallback 1: Just match the Genre (Tag)
-        if (mysqli_num_rows($rec_res) == 0) {
-            $rec_sql = "SELECT g.id, g.name, (SELECT price FROM price_history WHERE game_id = g.id ORDER BY price_date DESC LIMIT 1) as price 
-                        FROM games g WHERE category LIKE '%$primary_tag%' AND id != $current_id LIMIT 4";
-            $rec_res = mysqli_query($conn, $rec_sql);
-            $match_type = "similar genres ($primary_tag)";
-        }
-
-        // Fallback 2: Just match the ML Cluster (Price/Sentiment tier)
-        if (mysqli_num_rows($rec_res) == 0) {
-            $rec_sql = "SELECT g.id, g.name, (SELECT price FROM price_history WHERE game_id = g.id ORDER BY price_date DESC LIMIT 1) as price 
-                        FROM games g WHERE cluster_label = '$current_cluster' AND id != $current_id LIMIT 4";
-            $rec_res = mysqli_query($conn, $rec_sql);
-            $match_type = "similar market pricing ($current_cluster)";
-        }
-        ?>
-
-        <p style="color: #889297; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
-            Based on <?php echo htmlspecialchars($match_type); ?>
-        </p>
-
-        <div style="display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px;">
-            <?php
-            if (mysqli_num_rows($rec_res) > 0) {
-                while($rec = mysqli_fetch_assoc($rec_res)) {
-                    $rec_price = $rec['price'] ?? 0;
-                    echo '<a href="game.php?id=' . $rec['id'] . '" style="flex: 1; min-width: 200px; background: #1b2838; padding: 15px; border-radius: 8px; text-decoration: none; border: 1px solid #2a475e; transition: 0.3s;" onmouseover="this.style.borderColor=\'#66c0f4\'" onmouseout="this.style.borderColor=\'#2a475e\'">';
-                    echo '<strong style="color: #fff; display: block; margin-bottom: 10px;">' . htmlspecialchars($rec['name']) . '</strong>';
-                    
-                    if ($rec_price == 0) {
-                        echo '<span style="color: #2ecc71; font-weight: bold;">Free to Play</span>';
-                    } else {
-                        echo '<span style="color: #66c0f4; font-weight: bold;">₹' . number_format($rec_price) . '</span>';
-                    }
-                    echo '</a>';
-                }
-            } else {
-                echo '<p style="color: #889297;">Import more games to see recommendations!</p>';
-            }
-            ?>
+      <!-- Review Bar -->
+      <div class="review-bar-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="color:<?php echo $rev_color; ?>;font-size:14px"><?php echo $rev_label; ?></strong>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)"><?php echo number_format($total); ?> reviews</span>
         </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:6px">
+          <span style="color:var(--steam-blue)"><?php echo $pct; ?>% Positive</span>
+          <span><?php echo 100-$pct; ?>% Negative</span>
+        </div>
+        <div class="review-bar-track">
+          <div class="review-bar-fill" style="width:<?php echo $pct; ?>%"></div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-header">
+    <div class="section-title"><span class="dot"></span> Price History (INR ₹)</div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">Price over time</div>
+    <canvas id="priceChart"></canvas>
+  </div>
+
+  <div class="section-header">
+    <div class="section-title"><span class="dot"></span> Review Growth History</div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">Positive vs Negative reviews over time</div>
+    <canvas id="reviewChart"></canvas>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section-header">
+    <div class="section-title"><span class="dot"></span> Because You Viewed This</div>
+    <span style="font-size:12px;color:var(--text-dim)">Based on <?php echo htmlspecialchars($match_type); ?></span>
+  </div>
+  <div class="rec-grid" style="margin-bottom:32px">
+    <?php if(mysqli_num_rows($rec_res)>0):
+      while($rec=mysqli_fetch_assoc($rec_res)):
+        $rp = $rec['price']??0; ?>
+    <a href="game.php?id=<?php echo $rec['id']; ?>" class="rec-card">
+      <strong><?php echo htmlspecialchars($rec['name']); ?></strong>
+      <span class="rec-price<?php if($rp==0) echo ' free'; ?>">
+        <?php echo $rp==0 ? 'Free to Play' : '₹'.number_format($rp); ?>
+      </span>
+    </a>
+    <?php endwhile; else: ?>
+    <p style="color:var(--text-secondary)">Import more games to see recommendations.</p>
+    <?php endif; ?>
+  </div>
+
 </div>
 
 <script>
-const opt = { 
-    responsive: true, 
-    scales: { 
-        x: { ticks: { maxTicksLimit: 10, color: '#889297' } }, 
-        y: { ticks: { color: '#889297' } } 
-    } 
+const CHART_DEFAULTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#1a1e2a',borderColor:'#252a38',borderWidth:1} },
+  scales:{
+    x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#525970',maxTicksLimit:10} },
+    y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#525970'} }
+  }
 };
 
-// Price Chart
-new Chart(document.getElementById('priceChart'), {
-    type: 'line',
-    data: {
-        labels: <?php echo json_encode($p_dates); ?>,
-        datasets: [{ label: 'Price', data: <?php echo json_encode($p_vals); ?>, borderColor: '#66c0f4', stepped: true, fill: false, pointRadius: 0 }]
-    },
-    options: opt
+new Chart(document.getElementById('priceChart'),{
+  type:'line',
+  data:{
+    labels:<?php echo json_encode($p_dates); ?>,
+    datasets:[{ data:<?php echo json_encode($p_vals); ?>, borderColor:'#1a9fff', backgroundColor:'rgba(26,159,255,0.08)', fill:true, stepped:'before', pointRadius:2, borderWidth:2 }]
+  },
+  options:CHART_DEFAULTS
 });
 
-// Review Chart (Bi-directional Bar Chart)
-new Chart(document.getElementById('reviewChart'), {
-    type: 'bar', // Changed from 'line' to 'bar'
-    data: {
-        labels: <?php echo json_encode($rh_dates); ?>,
-        datasets: [
-            {
-                label: 'Positive Reviews',
-                data: <?php echo json_encode($rh_pos); ?>,
-                backgroundColor: '#2ecc71',
-                borderColor: '#27ae60',
-                borderWidth: 1
-            },
-            {
-                label: 'Negative Reviews',
-                // Map the data to negative values so they grow downwards
-                data: <?php echo json_encode(array_map(function($v) { return -$v; }, $rh_neg)); ?>,
-                backgroundColor: '#e74c3c',
-                borderColor: '#c0392b',
-                borderWidth: 1
-            }
-        ]
+new Chart(document.getElementById('reviewChart'),{
+  type:'bar',
+  data:{
+    labels:<?php echo json_encode($rh_dates); ?>,
+    datasets:[
+      { label:'Positive', data:<?php echo json_encode($rh_pos); ?>, backgroundColor:'rgba(46,204,113,0.7)', borderColor:'#2ecc71', borderWidth:1 },
+      { label:'Negative', data:<?php echo json_encode(array_map(fn($v)=>-$v,$rh_neg)); ?>, backgroundColor:'rgba(231,76,60,0.7)', borderColor:'#e74c3c', borderWidth:1 }
+    ]
+  },
+  options:{
+    ...CHART_DEFAULTS,
+    plugins:{
+      legend:{display:true,labels:{color:'#e8eaf0',boxWidth:12}},
+      tooltip:{backgroundColor:'#1a1e2a',borderColor:'#252a38',borderWidth:1,callbacks:{label:ctx=>ctx.dataset.label+': '+Math.abs(ctx.parsed.y)}}
     },
-    options: {
-        responsive: true,
-        scales: {
-            x: {
-                ticks: { maxTicksLimit: 10, color: '#889297' },
-                stacked: true // Stack bars on the same x-axis point
-            },
-            y: {
-                stacked: true,
-                ticks: {
-                    color: '#889297',
-                    // Optional: Format labels to show absolute values (remove negative sign)
-                    callback: function(value) {
-                        return Math.abs(value);
-                    }
-                }
-            }
-        },
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    // Correct the tooltip so it doesn't show a negative sign for bad reviews
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) label += ': ';
-                        label += Math.abs(context.parsed.y);
-                        return label;
-                    }
-                }
-            }
-        }
+    scales:{
+      x:{...CHART_DEFAULTS.scales.x,stacked:true},
+      y:{...CHART_DEFAULTS.scales.y,stacked:true,ticks:{color:'#525970',callback:v=>Math.abs(v)}}
     }
+  }
 });
 </script>
 </body>
