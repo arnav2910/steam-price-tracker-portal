@@ -9,16 +9,16 @@ $filter = !empty($q) ? " AND (g.name LIKE '%$q%' OR g.category LIKE '%$q%')" : "
 $query  = "SELECT g.*,p.price,r.pos_reviews,r.neg_reviews
            FROM games g
            JOIN price_history p  ON g.id=p.game_id  AND p.price_date=(SELECT MAX(price_date) FROM price_history WHERE game_id=g.id)
-           JOIN review_history r ON g.id=r.game_id  AND r.review_date=(SELECT MAX(review_date) FROM review_history WHERE game_id=g.id)
+           LEFT JOIN (SELECT game_id, SUM(pos_reviews) as pos_reviews, SUM(neg_reviews) as neg_reviews FROM review_history GROUP BY game_id) r ON g.id=r.game_id
            WHERE 1=1 $filter";
 
 $insight_label = '';
 if(!empty($insight)){
     switch($insight){
-        case 'cheapest':     $query .= " ORDER BY p.price ASC LIMIT 1";       $insight_label='Cheapest Game'; break;
-        case 'expensive':    $query .= " ORDER BY p.price DESC LIMIT 1";      $insight_label='Most Expensive'; break;
-        case 'high_reviews': $query .= " ORDER BY r.pos_reviews DESC LIMIT 1";$insight_label='Most Positive Reviews'; break;
-        case 'neg_reviews':  $query .= " ORDER BY r.neg_reviews DESC LIMIT 1";$insight_label='Most Negative Reviews'; break;
+        case 'cheapest':     $query .= " ORDER BY p.price ASC LIMIT 10";       $insight_label='Cheapest Game'; break;
+        case 'expensive':    $query .= " ORDER BY p.price DESC LIMIT 10";      $insight_label='Most Expensive'; break;
+        case 'high_reviews': $query .= " ORDER BY r.pos_reviews DESC LIMIT 10";$insight_label='Most Positive Reviews'; break;
+        case 'neg_reviews':  $query .= " ORDER BY r.neg_reviews DESC LIMIT 10";$insight_label='Most Negative Reviews'; break;
         case 'price_drop':
             $query="SELECT g.*,p.price,(MAX(ph.price)-MIN(ph.price)) as drop_amt FROM games g
                     JOIN price_history p ON g.id=p.game_id JOIN price_history ph ON g.id=ph.game_id
