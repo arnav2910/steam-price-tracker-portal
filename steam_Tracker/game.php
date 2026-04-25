@@ -27,11 +27,11 @@ $max_price = $p_vals ? max($p_vals) : 0;
 $min_price = $p_vals ? min($p_vals) : 0;
 $disc = ($max_price>0 && $cur_price<$max_price) ? round(($max_price-$cur_price)/$max_price*100) : 0;
 
-// Review data
-$rev_res = mysqli_query($conn,"SELECT pos_reviews,neg_reviews FROM review_history WHERE game_id=$id ORDER BY review_date DESC LIMIT 1");
+// Review data - sum ALL rows for all-time total
+$rev_res = mysqli_query($conn,"SELECT SUM(pos_reviews) as pos, SUM(neg_reviews) as neg FROM review_history WHERE game_id=$id");
 $latest  = mysqli_fetch_assoc($rev_res);
-$pos     = $latest['pos_reviews'] ?? 0;
-$neg     = $latest['neg_reviews'] ?? 0;
+$pos     = $latest['pos'] ?? 0;
+$neg     = $latest['neg'] ?? 0;
 $total   = $pos+$neg;
 $pct     = $total>0 ? round($pos/$total*100) : 0;
 $rev_label='Mixed'; $rev_color='var(--yellow)';
@@ -81,7 +81,15 @@ include 'includes/header.php';
 
   <!-- DETAIL HEADER -->
   <div class="detail-header">
+    <?php
+      $gi_file = 'steam_game_headers_by_name/' . $game['name'] . '.jpg';
+      $gi_has  = file_exists($gi_file);
+    ?>
+    <?php if($gi_has): ?>
+    <div class="detail-hero-img"><img src="<?php echo htmlspecialchars($gi_file); ?>" alt="<?php echo htmlspecialchars($game['name']); ?>"></div>
+    <?php else: ?>
     <div class="detail-hero-placeholder"><?php echo htmlspecialchars($game['name']); ?></div>
+    <?php endif; ?>
 
     <div class="detail-info">
       <h1 class="detail-title"><?php echo strtoupper(htmlspecialchars($game['name'])); ?></h1>
@@ -171,11 +179,23 @@ include 'includes/header.php';
     <?php if(mysqli_num_rows($rec_res)>0):
       while($rec=mysqli_fetch_assoc($rec_res)):
         $rp = $rec['price']??0; ?>
+    <?php
+      $ri = $rec['name'];
+      $ri_src = 'steam_game_headers_by_name/' . $ri . '.jpg';
+      $ri_has = file_exists($ri_src);
+    ?>
     <a href="game.php?id=<?php echo $rec['id']; ?>" class="rec-card">
-      <strong><?php echo htmlspecialchars($rec['name']); ?></strong>
-      <span class="rec-price<?php if($rp==0) echo ' free'; ?>">
-        <?php echo $rp==0 ? 'Free to Play' : '₹'.number_format($rp); ?>
-      </span>
+      <?php if($ri_has): ?>
+      <div class="rec-card-img"><img src="<?php echo htmlspecialchars($ri_src); ?>" alt="<?php echo htmlspecialchars($ri); ?>"></div>
+      <?php else: ?>
+      <div class="rec-card-img rec-card-img-placeholder"><?php echo htmlspecialchars($ri); ?></div>
+      <?php endif; ?>
+      <div class="rec-card-body">
+        <strong><?php echo htmlspecialchars($rec['name']); ?></strong>
+        <span class="rec-price<?php if($rp==0) echo ' free'; ?>">
+          <?php echo $rp==0 ? 'Free to Play' : '₹'.number_format($rp); ?>
+        </span>
+      </div>
     </a>
     <?php endwhile; else: ?>
     <p style="color:var(--text-secondary)">Import more games to see recommendations.</p>

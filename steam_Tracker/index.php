@@ -19,13 +19,14 @@ $sale_res = mysqli_query($conn,
 while($r = mysqli_fetch_assoc($sale_res))
     if($r['mx']>0 && $r['cur'] < $r['mx']) $on_sale++;
 
-// Category list
-$cat_res = mysqli_query($conn,"SELECT DISTINCT category FROM games ORDER BY category");
-$unique_cats = [];
+// Category list — count frequency, top 10 first
+$cat_res = mysqli_query($conn,"SELECT category FROM games");
+$tag_counts = [];
 while($r = mysqli_fetch_assoc($cat_res))
-    foreach(explode('|',$r['category']) as $t) if(trim($t)) $unique_cats[] = trim($t);
-$unique_cats = array_unique($unique_cats);
-sort($unique_cats);
+    foreach(explode('|',$r['category']) as $t)
+        if(trim($t)) $tag_counts[trim($t)] = ($tag_counts[trim($t)] ?? 0) + 1;
+arsort($tag_counts);
+$unique_cats = array_keys($tag_counts);
 
 // All games with buy score
 $games_res = mysqli_query($conn,
@@ -36,7 +37,7 @@ $games_res = mysqli_query($conn,
      FROM games g
      JOIN price_history p ON g.id=p.game_id
        AND p.price_date=(SELECT MAX(price_date) FROM price_history WHERE game_id=g.id)
-     JOIN review_history r ON g.id=r.game_id
+     LEFT JOIN review_history r ON g.id=r.game_id
        AND r.review_date=(SELECT MAX(review_date) FROM review_history WHERE game_id=g.id)
      ORDER BY g.name ASC");
 
@@ -86,11 +87,30 @@ include 'includes/header.php';
     <div class="section-title"><span class="dot"></span> Browse by Category</div>
   </div>
   <div class="category-chips" style="margin-bottom:32px">
-    <?php foreach($unique_cats as $cat):
+    <?php foreach($unique_cats as $i => $cat):
       $esc = htmlspecialchars($cat); ?>
-    <a href="results.php?q=<?php echo urlencode($cat); ?>" class="cat-chip"><?php echo $esc; ?></a>
+    <a href="results.php?q=<?php echo urlencode($cat); ?>"
+       class="cat-chip<?php echo $i >= 10 ? ' cat-chip-extra' : ''; ?>"><?php echo $esc; ?></a>
     <?php endforeach; ?>
+    <?php if(count($unique_cats) > 10): ?>
+    <button class="cat-chip cat-chip-more" id="catToggle" onclick="toggleCats()">+ <?php echo count($unique_cats)-10; ?> more</button>
+    <?php endif; ?>
   </div>
+  <style>
+    .cat-chip-extra { display:none; }
+    .cat-chip-more { background:transparent; border:1px dashed var(--border); color:var(--text-secondary); cursor:pointer; font-family:inherit; font-size:13px; transition:all .2s; }
+    .cat-chip-more:hover { border-color:var(--steam-blue); color:var(--steam-blue); }
+  </style>
+  <script>
+  function toggleCats(){
+    var extras = document.querySelectorAll('.cat-chip-extra');
+    var btn = document.getElementById('catToggle');
+    var open = btn.dataset.open==='1';
+    extras.forEach(function(el){ el.style.display = open ? '' : 'inline-flex'; });
+    btn.textContent = open ? '+ <?php echo count($unique_cats)-10; ?> more' : '\u2212 fewer';
+    btn.dataset.open = open ? '0' : '1';
+  }
+  </script>
 
   <!-- ALL GAMES GRID -->
   <div class="section-header">
@@ -111,7 +131,15 @@ include 'includes/header.php';
     ?>
     <div class="game-card" onclick="location.href='game.php?id=<?php echo $g['id']; ?>'">
       <?php if($disc>0): ?><div class="game-card-discount">-<?php echo $disc; ?>%</div><?php endif; ?>
+      <?php
+        $gi_file = 'steam_game_headers_by_name/' . $g['name'] . '.jpg';
+        $gi_has  = file_exists($gi_file);
+      ?>
+      <?php if($gi_has): ?>
+      <div class="game-card-img has-img"><img src="<?php echo htmlspecialchars($gi_file); ?>" alt="<?php echo htmlspecialchars($g['name']); ?>"></div>
+      <?php else: ?>
       <div class="game-card-img"><?php echo htmlspecialchars($g['name']); ?></div>
+      <?php endif; ?>
       <div class="game-card-body">
         <div class="game-card-name"><?php echo htmlspecialchars($g['name']); ?></div>
         <div class="game-card-meta">
