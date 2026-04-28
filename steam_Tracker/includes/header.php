@@ -54,14 +54,14 @@ $_cart_count= isset($conn) ? cartCount($conn) : 0;
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
-          <?php if($_wl_count > 0): ?><span class="icon-badge"><?php echo $_wl_count; ?></span><?php endif; ?>
+          <span class="icon-badge" id="hdr-wl-badge" style="<?php echo $_wl_count > 0 ? '' : 'display:none'; ?>"><?php echo $_wl_count; ?></span>
         </a>
         <a href="<?php echo $css_root; ?>cart.php" class="icon-btn<?php if($active_nav==='cart') echo ' active'; ?>" title="Cart">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
           </svg>
-          <?php if($_cart_count > 0): ?><span class="icon-badge"><?php echo $_cart_count; ?></span><?php endif; ?>
+          <span class="icon-badge" id="hdr-cart-badge" style="<?php echo $_cart_count > 0 ? '' : 'display:none'; ?>"><?php echo $_cart_count; ?></span>
         </a>
         <div class="user-menu-wrap">
           <button class="user-menu-btn" id="userMenuBtn">
@@ -74,11 +74,11 @@ $_cart_count= isset($conn) ? cartCount($conn) : 0;
           <div class="user-menu-dropdown" id="userMenuDropdown">
             <a href="<?php echo $css_root; ?>wishlist.php">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              Wishlist <?php if($_wl_count > 0) echo "($wl_count)"; ?>
+              Wishlist <span id="hdr-dd-wl-count"><?php if($_wl_count > 0) echo "($_wl_count)"; ?></span>
             </a>
             <a href="<?php echo $css_root; ?>cart.php">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-              Cart <?php if($_cart_count > 0) echo "($_cart_count)"; ?>
+              Cart <span id="hdr-dd-cart-count"><?php if($_cart_count > 0) echo "($_cart_count)"; ?></span>
             </a>
             <div class="user-menu-divider"></div>
             <a href="<?php echo $css_root; ?>logout.php" class="user-menu-logout">
