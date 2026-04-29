@@ -1,9 +1,4 @@
 <?php
-/**
- * cart_action.php — AJAX endpoint for cart add/remove.
- * Expects POST: action (add|remove), game_id
- * Returns JSON: {success, count, action}
- */
 require_once 'includes/auth.php';
 require_once 'includes/db.php';
 header('Content-Type: application/json');

@@ -1,8 +1,4 @@
 <?php
-/**
- * db.php — Database connection.
- * Also creates the users, wishlist, and cart tables if they don't exist.
- */
 
 $conn = mysqli_connect("localhost", "root", "", "steam_tracker");
 
@@ -10,7 +6,6 @@ if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
 
-// ---- Ensure user-related tables exist ----
 
 mysqli_query($conn, "
     CREATE TABLE IF NOT EXISTS users (

@@ -15,7 +15,7 @@ function getBuyScore($conn, $game_id) {
     $max = $stats['max_p'];
     $avg = ($min + $max) / 2;
 
-    // --- Price Score (0-100) ---
+    // Price Score
     if ($current <= $min) {
         $priceScore = 100;
     } elseif ($current > $avg) {
@@ -34,10 +34,10 @@ function getBuyScore($conn, $game_id) {
         $pct = ($total > 0) ? ($rev['pos_reviews'] / $total) * 100 : 0;
     }
 
-    // --- Review Score (0-100) ---
+    // Review Score (0-100)
     $reviewScore = $pct;
 
-    // --- Blending Weights based on review sentiment ---
+    // Blending Weights based on review sentiment
     if ($pct >= 95) {         // Overwhelmingly Positive
         $rw = 0.75; $pw = 0.25;
     } elseif ($pct >= 80) {   // Very Positive

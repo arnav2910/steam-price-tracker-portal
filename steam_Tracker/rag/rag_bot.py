@@ -8,9 +8,6 @@ from langchain_community.tools import QuerySQLDatabaseTool
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# ==========================================
-# 1. API KEY SETUP (Using .env file)
-# ==========================================
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
 
@@ -19,9 +16,6 @@ if not hf_token:
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
 
-# ==========================================
-# 2. DATABASE CONNECTION
-# ==========================================
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -65,9 +59,6 @@ Table: review_history
 
 LIVE_SCHEMA = _fetch_live_schema()
 
-# ==========================================
-# 3. LLM INITIALIZATION
-# ==========================================
 hf_llm = HuggingFaceEndpoint(
     repo_id="meta-llama/Llama-3.1-8B-Instruct",
     task="text-generation",
@@ -78,13 +69,6 @@ hf_llm = HuggingFaceEndpoint(
 llm = ChatHuggingFace(llm=hf_llm)
 execute_query = QuerySQLDatabaseTool(db=db)
 
-# ==========================================
-# 4. CUSTOM PROMPTS
-# ==========================================
-
-# PROMPT 1 — SQL Generator
-# Includes the live schema + few-shot examples so the LLM
-# produces correct JOINs and column references every time.
 sql_generation_prompt = PromptTemplate.from_template(
     """You are a MySQL expert. Your ONLY job is to write a single, valid
 MySQL SELECT query that answers the user's question.
@@ -219,7 +203,6 @@ LIMIT 10;
 SQL Query:"""
 )
 
-# PROMPT 2 — Natural-language answer synthesizer
 answer_prompt = PromptTemplate.from_template(
     """You are a friendly and opinionated gaming assistant for a Steam
 price-tracking website. Given the user's question, the SQL query that was run,
@@ -251,9 +234,6 @@ SQL Result: {result}
 Answer:"""
 )
 
-# ==========================================
-# 5. SQL CLEANING & VALIDATION
-# ==========================================
 _FORBIDDEN = re.compile(
     r"\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE|REPLACE|GRANT|REVOKE)\b",
     re.IGNORECASE,
@@ -342,9 +322,6 @@ def ask_question(user_question: str) -> str:
     )
 
 
-# ==========================================
-# 7. INTERACTIVE LOOP
-# ==========================================
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("  STEAM TRACKER — RAG Chat Bot")

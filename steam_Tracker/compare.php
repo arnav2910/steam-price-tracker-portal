@@ -7,7 +7,6 @@ $active_nav  = 'compare';
 $page_title  = 'Compare Games';
 $extra_head  = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>';
 
-// Fetch all games for the selector dropdowns
 $all_games_res = mysqli_query($conn, "SELECT id, name FROM games ORDER BY name ASC");
 $all_games = [];
 while ($r = mysqli_fetch_assoc($all_games_res)) $all_games[] = $r;
@@ -15,14 +14,12 @@ while ($r = mysqli_fetch_assoc($all_games_res)) $all_games[] = $r;
 $g1_id = isset($_GET['g1']) ? (int)$_GET['g1'] : 0;
 $g2_id = isset($_GET['g2']) ? (int)$_GET['g2'] : 0;
 
-// ── Helper: load full game data for comparison ──────────────────────────
 function loadGameData($conn, $id) {
     if (!$id) return null;
 
     $g = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM games WHERE id=$id"));
     if (!$g) return null;
 
-    // Price history
     $ph = mysqli_query($conn, "SELECT price_date, price FROM price_history WHERE game_id=$id ORDER BY price_date ASC");
     $dates = []; $prices = [];
     while ($r = mysqli_fetch_assoc($ph)) { $dates[] = $r['price_date']; $prices[] = (float)$r['price']; }
@@ -33,7 +30,6 @@ function loadGameData($conn, $id) {
     $avg   = $prices ? array_sum($prices)/count($prices) : 0;
     $disc  = ($max > 0 && $cur < $max) ? round(($max - $cur) / $max * 100) : 0;
 
-    // Reviews (latest row)
     $rv = mysqli_fetch_assoc(mysqli_query($conn,
         "SELECT SUM(pos_reviews) as pos, SUM(neg_reviews) as neg FROM review_history WHERE game_id=$id"));
     $pos   = (int)($rv['pos'] ?? 0);
@@ -41,7 +37,6 @@ function loadGameData($conn, $id) {
     $total = $pos + $neg;
     $pct   = $total > 0 ? round($pos / $total * 100) : 0;
 
-    // Review history for chart
     $rh = mysqli_query($conn, "SELECT review_date, pos_reviews, neg_reviews FROM review_history WHERE game_id=$id ORDER BY review_date ASC");
     $rh_dates = []; $rh_pos = []; $rh_neg = [];
     while ($r = mysqli_fetch_assoc($rh)) {
@@ -96,7 +91,6 @@ if ($_uid && $comparing) {
     }
 }
 
-// ── Compute winner flags ─────────────────────────────────────────────────
 function winnerClass($a, $b, $lower_is_better = false) {
     if ($a == $b) return ['', ''];
     if ($lower_is_better) {
@@ -125,7 +119,6 @@ include 'includes/header.php';
 
 <div class="page-container">
 
-  <!-- Page heading -->
   <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap">
     <a href="javascript:history.back()" class="btn-reset">← Back</a>
     <div>
@@ -137,7 +130,6 @@ include 'includes/header.php';
     </div>
   </div>
 
-  <!-- ── SELECTOR FORM ───────────────────────────────────────────────── -->
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:36px">
     <form method="GET" action="compare.php" id="compareForm">
       <div style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:14px;align-items:end;flex-wrap:wrap">
@@ -259,7 +251,7 @@ include 'includes/header.php';
     </div>
   </div>
 
-  <!-- ── SIDE-BY-SIDE PANELS ───────────────────────────────────────── -->
+  <!-- Comparison Grid -->
   <div class="compare-grid">
 
     <?php foreach ([1, 2] as $slot):
@@ -399,7 +391,7 @@ include 'includes/header.php';
     </div>
   </div>
 
-  <!-- ── STAT COMPARISON TABLE ──────────────────────────────────────── -->
+  <!-- STAT COMPARISON TABLE-->
   <div class="section-header">
     <div class="section-title"><span class="dot"></span> Head-to-Head Stats</div>
   </div>
@@ -445,16 +437,6 @@ include 'includes/header.php';
     </table>
   </div>
 
-  <!-- Share URL -->
-  <!-- <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:32px;flex-wrap:wrap">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" style="flex-shrink:0"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-    <span style="font-size:13px;color:var(--text-secondary)">Share this comparison:</span>
-    <input id="shareUrl" type="text" readonly
-           value="<?php echo htmlspecialchars('compare.php?g1='.$g1_id.'&g2='.$g2_id); ?>"
-           style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text-primary);font-family:var(--font-mono);font-size:12px;cursor:text" onclick="this.select()">
-    <button onclick="copyShareUrl()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:var(--transition)" onmouseover="this.style.background='#1178cc'" onmouseout="this.style.background='var(--accent)'" id="copyBtn">Copy</button>
-  </div> -->
-
 <?php endif; // $comparing ?>
 
 </div><!-- /.page-container -->
@@ -462,15 +444,7 @@ include 'includes/header.php';
 <div id="toast-container"></div>
 
 <script>
-// ── Selectors: prevent same game on both sides ──
-function updateSwap() {
-  var s1 = document.getElementById('sel1');
-  var s2 = document.getElementById('sel2');
-  if (s1.value && s1.value === s2.value) {
-    // Reset the one that was just changed (can't tell which, so just clear g2)
-    // Actually: do nothing, let PHP handle it
-  }
-}
+// Selectors: prevent same game on both sides 
 
 function swapGames() {
   var s1 = document.getElementById('sel1');
@@ -480,17 +454,7 @@ function swapGames() {
   s2.value = tmp;
 }
 
-// ── Share URL copy ──
-function copyShareUrl() {
-  var inp = document.getElementById('shareUrl');
-  inp.select();
-  document.execCommand('copy');
-  var btn = document.getElementById('copyBtn');
-  btn.textContent = '✓ Copied!';
-  setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
-}
-
-// ── Toast ──
+// Toast
 function toast(msg, type) {
   var c = document.getElementById('toast-container');
   var t = document.createElement('div');
@@ -558,7 +522,7 @@ const CHART_DEFAULTS = {
   }
 };
 
-// ── Merged price labels for overlay chart ──
+//Merged price labels for overlay chart
 var allDates = [...new Set([
   ...<?php echo json_encode($data1['dates']); ?>,
   ...<?php echo json_encode($data2['dates']); ?>

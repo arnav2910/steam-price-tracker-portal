@@ -1,8 +1,4 @@
 <?php
-// Shared header — included at top of every page.
-// Set $active_nav = 'home'|'insights'|'import'|'ml'|'chatbot' before including.
-// Set $page_title for <title> tag.
-// Set $css_root = '' for root pages, '../' for subdirectory pages.
 
 require_once __DIR__ . '/auth.php';
 
@@ -10,7 +6,6 @@ $active_nav = $active_nav ?? 'home';
 $page_title = isset($page_title) ? htmlspecialchars($page_title).' — ' : '';
 $css_root   = $css_root ?? '';
 
-// Counts (only when DB is available)
 $_wl_count  = isset($conn) ? wishlistCount($conn) : 0;
 $_cart_count= isset($conn) ? cartCount($conn) : 0;
 ?>

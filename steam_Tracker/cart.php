@@ -47,7 +47,6 @@ include 'includes/header.php';
 
   <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
 
-    <!-- Cart Items -->
     <div class="table-card">
       <table>
         <thead>
@@ -90,7 +89,6 @@ include 'includes/header.php';
       </table>
     </div>
 
-    <!-- Order Summary -->
     <div class="cart-summary-card">
       <div class="cart-summary-title">Order Summary</div>
       <div class="cart-summary-row">

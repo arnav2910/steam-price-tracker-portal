@@ -14,7 +14,7 @@ include 'includes/header.php';
       <span class="dot"></span>
       AI Game Assistant
     </div>
-    <span style="font-size:12px;color:var(--text-dim)">Powered by LLaMA 3.1 + RAG</span>
+    <span style="font-size:12px;color:var(--text-dim)">Using LLaMA 3.1 + RAG</span>
   </div>
 
   <p style="color:var(--text-secondary);font-size:14px;max-width:680px;margin-bottom:24px;line-height:1.7">
@@ -31,7 +31,6 @@ include 'includes/header.php';
     <button class="example-chip" onclick="sendExample(this)">Which game had the biggest price drop?</button>
   </div>
 
-  <!-- Chat window -->
   <div class="chatbot-card">
     <div class="chatbot-messages" id="chatMessages">
       <div class="chat-message bot">
@@ -63,7 +62,6 @@ include 'includes/header.php';
     </div>
   </div>
 
-  <!-- API Setup Notice -->
   <div class="chatbot-notice">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--yellow)">
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -75,7 +73,6 @@ include 'includes/header.php';
     </span>
   </div>
 </div>
-
 <script>
 var API_URL = 'http://localhost:8000/chat';
 

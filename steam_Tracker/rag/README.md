@@ -43,7 +43,6 @@ Python server at `http://localhost:8000/chat`.
 
 ## Example questions
 - *"What is the lowest price for ARK Survival Ascended?"*
-- *"Compare Hollow Knight and Terraria. Which one should I buy?"*
 - *"Which game has the most positive reviews?"*
 - *"Show me all Action games currently on sale."*
 
