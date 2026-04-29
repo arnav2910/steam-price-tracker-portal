@@ -39,12 +39,6 @@ $_cart_count= isset($conn) ? cartCount($conn) : 0;
       <a href="<?php echo $css_root; ?>questions.php"  <?php if($active_nav==='insights') echo 'class="active"'; ?>>Insights</a>
       <a href="<?php echo $css_root; ?>import.php"     <?php if($active_nav==='import')  echo 'class="active"'; ?>>Sync Data</a>
       <a href="<?php echo $css_root; ?>ml_engine.php"  <?php if($active_nav==='ml')      echo 'class="active"'; ?>>ML Engine</a>
-      <a href="<?php echo $css_root; ?>compare.php"    <?php if($active_nav==='compare') echo 'class="active"'; ?>>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-2px">
-          <path d="M18 20V10M12 20V4M6 20v-6"/>
-        </svg>
-        Compare
-      </a>
       <a href="<?php echo $css_root; ?>chatbot.php"    <?php if($active_nav==='chatbot') echo 'class="active"'; ?>>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-2px">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
