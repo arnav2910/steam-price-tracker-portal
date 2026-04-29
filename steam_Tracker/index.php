@@ -41,14 +41,45 @@ $games_res = mysqli_query($conn,
        AND r.review_date=(SELECT MAX(review_date) FROM review_history WHERE game_id=g.id)
      ORDER BY g.name ASC");
 
-function calcBuyScore($cur,$min,$max,$pos,$neg) {
-    if($cur<=0) return 0;
-    $avg=($min+$max)/2;
-    $score = ($cur<=$min) ? 75 : (($cur>$avg) ? 15 : 15+(($avg-$cur)/max(0.01,$avg-$min)*60));
-    $total=$pos+$neg;
-    if($total>0) $score += ($pos/$total)*25;
+function calcBuyScore($cur, $min, $max, $pos, $neg) {
+    $total = $pos + $neg;
+    $pct = ($total > 0) ? ($pos / $total) * 100 : 0;
+    if($cur <= 0) return 0;
+
+    // --- Price Score (0-100) ---
+    // 100 = at/below all-time low, ~20 = above average price
+    $avg = ($min + $max) / 2;
+    if($cur <= $min) {
+        $priceScore = 100;
+    } elseif($cur > $avg) {
+        $priceScore = 20;
+    } else {
+        $priceScore = 20 + (($avg - $cur) / max(0.01, $avg - $min)) * 80;
+    }
+
+    // --- Review Score (0-100) ---
+    // Uses positive review percentage directly
+    $reviewScore = $pct;
+
+    // --- Blending Weights based on review sentiment ---
+    if($pct >= 95) {          // Overwhelmingly Positive
+        $rw = 0.75; $pw = 0.25;
+    } elseif($pct >= 80) {    // Very Positive
+        $rw = 0.65; $pw = 0.35;
+    } elseif($pct >= 65) {    // Positive
+        $rw = 0.55; $pw = 0.45;
+    } elseif($pct >= 50) {    // Mixed
+        $rw = 0.45; $pw = 0.55;
+    } elseif($pct >= 30) {    // Negative
+        $rw = 0.35; $pw = 0.65;
+    } else {                  // Overwhelmingly Negative
+        $rw = 0.25; $pw = 0.75;
+    }
+
+    $score = ($reviewScore * $rw) + ($priceScore * $pw);
     return round($score);
 }
+
 function buyLabel($s){
     if($s>=85) return ['label'=>'Excellent Buy','color'=>'#2ecc71'];
     if($s>=70) return ['label'=>'Good Value',   'color'=>'#27ae60'];
