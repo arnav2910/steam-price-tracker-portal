@@ -78,7 +78,7 @@ foreach($games as $g) $clusters[$g['cluster']][]=$g;
             <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)"><?php echo round($g['sentiment'],1); ?>%</span>
           </div>
         </td>
-        <td><?php echo $g['is_anomaly'] ? '<span class="anomaly-badge">⭐ Yes</span>' : '—'; ?></td>
+        <td><?php echo $g['is_anomaly'] ? '<span class="anomaly-badge">Yes</span>' : '—'; ?></td>
       </tr>
       <?php endforeach; ?>
     </table>
@@ -87,7 +87,7 @@ foreach($games as $g) $clusters[$g['cluster']][]=$g;
 
   <div style="display:flex;gap:12px;margin-top:8px">
     <a href="index.php" class="btn-primary">← View Games</a>
-    <a href="ml_engine.php" class="btn-secondary">🔄 Re-run</a>
+    <a href="ml_engine.php" class="btn-secondary">Re-run</a>
   </div>
 </div>
 </body>

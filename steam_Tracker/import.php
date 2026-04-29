@@ -68,7 +68,7 @@ include 'includes/header.php';
     </div>
     <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
       <a href="index.php" class="btn-primary">← View Games</a>
-      <a href="ml_engine.php" class="btn-secondary">🤖 Run ML Engine</a>
+      <a href="ml_engine.php" class="btn-secondary">Run ML Engine</a>
     </div>
     <?php else: ?>
     <p>Click <strong style="color:var(--text-primary)">Start Import</strong> to scan the <code>data/</code> directory and load all matching CSV files into the database.</p>
