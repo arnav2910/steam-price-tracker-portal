@@ -38,8 +38,10 @@ $pct     = $total>0 ? round($pos/$total*100) : 0;
 $rev_label='Mixed'; $rev_color='var(--yellow)';
 if($pct>=95){ $rev_label='Overwhelmingly Positive'; $rev_color='var(--steam-blue)'; }
 elseif($pct>=80){ $rev_label='Very Positive'; $rev_color='var(--steam-blue)'; }
-elseif($pct>=70){ $rev_label='Positive'; $rev_color='var(--steam-blue)'; }
-elseif($pct<40) { $rev_label='Negative'; $rev_color='var(--red)'; }
+elseif($pct>=65) { $rev_label='Positive'; $rev_color='var(--steam-blue)'; }
+elseif($pct>=50) { $rev_label='Mixed'; $rev_color='var(--yellow)'; }
+elseif($pct>=30) { $rev_label='Negative'; $rev_color='var(--red)'; }
+elseif($pct<30) { $rev_label='Overwhelmingly Negative'; $rev_color='var(--red)'; }
 
 // Review history chart
 $rh_res = mysqli_query($conn,"SELECT review_date,pos_reviews,neg_reviews FROM review_history WHERE game_id=$id ORDER BY review_date ASC");
