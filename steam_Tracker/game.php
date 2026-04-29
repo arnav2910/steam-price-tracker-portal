@@ -140,7 +140,7 @@ include 'includes/header.php';
 
       <!-- Buy Score -->
       <div class="buy-rec-card">
-        <div class="buy-rec-title">🤖 Buy Recommendation</div>
+        <div class="buy-rec-title">Buy Recommendation</div>
         <div class="buy-meter">
           <div class="buy-meter-indicator" style="left:<?php echo $buy_score; ?>%"></div>
         </div>
