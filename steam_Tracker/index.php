@@ -44,7 +44,7 @@ $games_res = mysqli_query($conn,
 function calcBuyScore($cur, $min, $max, $pos, $neg) {
     $total = $pos + $neg;
     $pct = ($total > 0) ? ($pos / $total) * 100 : 0;
-    if($cur <= 0) return 0;
+    if($cur <= 0) $priceScore = 100;
 
     // --- Price Score (0-100) ---
     // 100 = at/below all-time low, ~20 = above average price

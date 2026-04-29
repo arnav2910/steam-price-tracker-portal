@@ -6,7 +6,7 @@ function getBuyScore($conn, $game_id) {
     $res = mysqli_query($conn, "SELECT price FROM price_history WHERE game_id = $game_id ORDER BY price_date DESC LIMIT 1");
     $current = mysqli_fetch_assoc($res)['price'] ?? 0;
 
-    if ($current <= 0) return 0;
+    if($cur <= 0) $priceScore = 100;
 
     // 2. Get Price Stats (min and max for all-time range)
     $res_stats = mysqli_query($conn, "SELECT MIN(price) as min_p, MAX(price) as max_p FROM price_history WHERE game_id = $game_id");
